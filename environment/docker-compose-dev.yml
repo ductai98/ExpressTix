@@ -18,7 +18,7 @@ services:
     ]
     environment:
       MYSQL_ROOT_PASSWORD: root1234
-      MYSQL_DATABASE: ticket
+      MYSQL_DATABASE: expresstix
       MYSQL_PASSWORD: root1234
     ports:
       - "3316:3306"
@@ -114,6 +114,16 @@ services:
     - DATA_SOURCE_NAME=root:root1234@tcp(mysql:3316)/
     depends_on:
       - mysql
+    networks:
+      - pre-event-network
+
+  redis-exporter:
+    image: oliver006/redis_exporter
+    container_name: pre-event-redis-exporter
+    restart: unless-stopped
+    ports:
+      - '9121:9121'
+    command: -redis.addr redis://redis:6379
     networks:
       - pre-event-network
 
