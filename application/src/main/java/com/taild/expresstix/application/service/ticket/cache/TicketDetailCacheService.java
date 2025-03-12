@@ -5,13 +5,20 @@ import com.taild.expresstix.domain.service.ticket.TicketDetailDomainService;
 import com.taild.expresstix.infrastructure.cache.redis.RedisInfraService;
 import com.taild.expresstix.infrastructure.distributed.redisson.RedissonDistributedLocker;
 import com.taild.expresstix.infrastructure.distributed.redisson.RedissonDistributedService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
 
 @Service
+@Slf4j
 public class TicketDetailCacheService {
+
+    private static final String LOCK_KEY_PREFIX = "PRO_LOCK_KEY_ITEM_";
+    private static final String CACHE_KEY_PREFIX = "PRO_TICKET:ITEM:";
+    private static final int LOCK_WAIT_TIME = 1;
+    private static final int LOCK_LEASE_TIME = 5;
 
     @Autowired
     private RedisInfraService redisInfraService;
@@ -22,48 +29,68 @@ public class TicketDetailCacheService {
     @Autowired
     private TicketDetailDomainService ticketDetailDomainService;
 
-    public TicketDetailEntity getTicketDetailById(Long ticketId) {
-        TicketDetailEntity ticketDetail = redisInfraService.getObject(genEventItemKey(ticketId), TicketDetailEntity.class);
+    private TicketDetailEntity getWithLock(Long id) {
+        RedissonDistributedLocker locker = redissonDistributedService.getDistributedLock(getLockKey(id));
+        try {
+            if (!locker.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
+                log.info("Failed to acquire lock for id: {}", id);
+                return null;
+            }
 
+            return getAndCacheTicketDetail(id);
+        } catch (InterruptedException e) {
+            log.error("Interrupted while trying to acquire lock for id: {}", id, e);
+            Thread.currentThread().interrupt();
+            return null;
+        } finally {
+            locker.unlock();
+        }
+    }
+
+
+    public TicketDetailEntity getTicketDetailCache(Long id) {
+        log.info("Fetching ticket detail for id: {}", id);
+
+        TicketDetailEntity ticketDetail = getFromCache(id);
         if (ticketDetail != null) {
             return ticketDetail;
         }
 
-        RedissonDistributedLocker locker = redissonDistributedService.getDistributedLock("PRO_LOCK_KEY_ITEM_" + ticketId);
+        return getWithLock(id);
+    }
 
-        try {
-            //Must unlock after 5 seconds to avoid lock contention
-            boolean isLocked = locker.tryLock(1, 5, TimeUnit.SECONDS);
-
-            // If not locked, return null
-            if (!isLocked) {
-                return null;
-            }
-
-            ticketDetail = redisInfraService.getObject(genEventItemKey(ticketId), TicketDetailEntity.class);
-
-            if (ticketDetail != null) {
-                return ticketDetail;
-            }
-
-            ticketDetail = ticketDetailDomainService.getTicketDetailById(ticketId);
-
-            // If not found in databases, set cache to null
-            if (ticketDetail == null) {
-                redisInfraService.setObject(genEventItemKey(ticketId), null);
-
-                return null;
-            }
-
-            // Set cache with ticketDetail
-            redisInfraService.setObject(genEventItemKey(ticketId), ticketDetail);
-
-            return ticketDetail;
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } finally {
-            locker.unlock();
+    private TicketDetailEntity getFromCache(Long id) {
+        TicketDetailEntity ticketDetail = redisInfraService.getObject(getCacheKey(id), TicketDetailEntity.class);
+        if (ticketDetail != null) {
+            log.info("Cache hit for id: {}", id);
         }
+        return ticketDetail;
+    }
+
+    private TicketDetailEntity getAndCacheTicketDetail(Long id) {
+        TicketDetailEntity ticketDetail = getFromCache(id);
+        if (ticketDetail != null) {
+            return ticketDetail;
+        }
+
+        ticketDetail = ticketDetailDomainService.getTicketDetailById(id);
+        log.info("Fetched from database for id: {}", id);
+
+        cacheTicketDetail(id, ticketDetail);
+        return ticketDetail;
+    }
+
+    private void cacheTicketDetail(Long id, TicketDetailEntity ticketDetail) {
+        redisInfraService.setObject(getCacheKey(id), ticketDetail);
+        log.info("Cached ticket detail for id: {}", id);
+    }
+
+    private String getCacheKey(Long itemId) {
+        return CACHE_KEY_PREFIX + itemId;
+    }
+
+    private String getLockKey(Long itemId) {
+        return LOCK_KEY_PREFIX + itemId;
     }
 
     private String genEventItemKey(Long itemId) {
