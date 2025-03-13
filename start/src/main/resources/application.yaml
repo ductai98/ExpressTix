@@ -61,14 +61,14 @@ resilience4j:
   circuitbreaker:
     instances:
       checkRandom:
-              registerHealthIndicator: true
-              slidingWindowSize: 10
-              permittedNumberOfCallsInHalfOpenState: 3
-              #slidingWindowType: TIME_BASED
-              minimumNumberOfCalls: 5
-              waitDurationInOpenState: 5s
-              failureRateThreshold: 50
-              eventConsumerBufferSize: 10
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        permittedNumberOfCallsInHalfOpenState: 3
+        #slidingWindowType: TIME_BASED
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
 
 management:
   health:

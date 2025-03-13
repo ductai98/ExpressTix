@@ -64,7 +64,7 @@ public class TicketDetailCacheService {
         TicketDetailEntity ticketDetail = getTicketDetailLocalCache(id);
 
         if (ticketDetail != null) {
-            //log.info("Ticket detail found in local cache for id: {}", id);
+            log.info("Ticket detail found in local cache for id: {}", id);
             return ticketDetail;
         }
 
@@ -72,7 +72,7 @@ public class TicketDetailCacheService {
         ticketDetail = getFromCache(id);
 
         if (ticketDetail != null) {
-            //log.info("Ticket detail found in Redis cache for id: {}", id);
+            log.info("Ticket detail found in Redis cache for id: {}", id);
             // Update local cache with data from Redis
             ticketDetailLocalCache.put(id, ticketDetail);
             return ticketDetail;
@@ -82,7 +82,7 @@ public class TicketDetailCacheService {
         ticketDetail = getWithLock(id);
 
         if (ticketDetail != null) {
-            log.info("Ticket detail fetched from database for id: {}", id);
+            //log.info("Ticket detail fetched from database for id: {}", id);
             // Update local cache
             ticketDetailLocalCache.put(id, ticketDetail);
         }
@@ -126,7 +126,7 @@ public class TicketDetailCacheService {
         }
 
         ticketDetail = ticketDetailDomainService.getTicketDetailById(id);
-        //log.info("Fetched from database for id: {}", id);
+        log.info("Fetched from database for id: {}", id);
 
         cacheTicketDetail(id, ticketDetail);
         return ticketDetail;
@@ -134,7 +134,7 @@ public class TicketDetailCacheService {
 
     private void cacheTicketDetail(Long id, TicketDetailEntity ticketDetail) {
         redisInfraService.setObject(getCacheKey(id), ticketDetail);
-        log.info("Cached ticket detail for id: {}", id);
+        //log.info("Cached ticket detail for id: {}", id);
     }
 
     private String getCacheKey(Long itemId) {
