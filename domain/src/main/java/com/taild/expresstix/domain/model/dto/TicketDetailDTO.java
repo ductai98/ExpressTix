@@ -32,9 +32,5 @@ public class TicketDetailDTO {
 
     private Long activityId;
 
-    private Date updatedAt;
-
-    private Date createdAt;
-
     private Long version;
 }

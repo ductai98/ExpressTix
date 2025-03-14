@@ -2,14 +2,12 @@ package com.taild.expresstix.controller.resouces;
 
 import com.taild.expresstix.application.service.event.EventAppService;
 import com.taild.expresstix.application.service.ticket.TicketDetailAppService;
+import com.taild.expresstix.domain.model.dto.TicketDetailDTO;
 import com.taild.expresstix.domain.model.entity.TicketDetailEntity;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
@@ -52,7 +50,10 @@ public class HiController {
     }
 
     @GetMapping("/ticket/{id}")
-    public TicketDetailEntity getTickerDetail(@PathVariable(name = "id") Long ticketId) {
-        return ticketDetailAppService.getTicketDetailById(ticketId);
+    public TicketDetailDTO getTickerDetail(
+            @PathVariable(name = "id") Long ticketId,
+            @RequestParam(name = "version", required = false) Long version
+    ) {
+        return ticketDetailAppService.getTicketDetailById(ticketId, version);
     }
 }
