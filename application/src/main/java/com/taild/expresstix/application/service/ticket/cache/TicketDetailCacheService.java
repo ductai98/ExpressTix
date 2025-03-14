@@ -2,6 +2,7 @@ package com.taild.expresstix.application.service.ticket.cache;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.taild.expresstix.application.model.cache.TicketDetailCache;
 import com.taild.expresstix.domain.model.entity.TicketDetailEntity;
 import com.taild.expresstix.domain.service.ticket.TicketDetailDomainService;
 import com.taild.expresstix.infrastructure.cache.redis.RedisInfraService;
@@ -23,7 +24,7 @@ public class TicketDetailCacheService {
     private static final int LOCK_LEASE_TIME = 5;
 
     //local cache
-    private static final Cache<Long, TicketDetailEntity> ticketDetailLocalCache = CacheBuilder.newBuilder()
+    private static final Cache<Long, TicketDetailCache> ticketDetailLocalCache = CacheBuilder.newBuilder()
             .initialCapacity(10)
             .concurrencyLevel(8)
             .expireAfterWrite(10, TimeUnit.MINUTES)
@@ -39,7 +40,7 @@ public class TicketDetailCacheService {
     @Autowired
     private TicketDetailDomainService ticketDetailDomainService;
 
-    private TicketDetailEntity getWithLock(Long id) {
+    private TicketDetailCache getWithLock(Long id, Long version) {
         RedissonDistributedLocker locker = redissonDistributedService.getDistributedLock(getLockKey(id));
         try {
             if (!locker.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
@@ -47,7 +48,7 @@ public class TicketDetailCacheService {
                 return null;
             }
 
-            return getAndCacheTicketDetail(id);
+            return getAndCacheTicketDetail(id, version);
         } catch (InterruptedException e) {
             log.error("Interrupted while trying to acquire lock for id: {}", id, e);
             Thread.currentThread().interrupt();
@@ -58,20 +59,26 @@ public class TicketDetailCacheService {
     }
 
 
-    public TicketDetailEntity getTickerDetailCache(Long id) {
+    public TicketDetailCache getTickerDetailCache(Long id, Long version) {
 
         // First, try to get from local cache
-        TicketDetailEntity ticketDetail = getTicketDetailLocalCache(id);
+        TicketDetailCache ticketDetail = getTicketDetailLocalCache(id);
 
         if (ticketDetail != null) {
             log.info("Ticket detail found in local cache for id: {}", id);
-            return ticketDetail;
+
+            if (version == null
+                    || ticketDetail.getVersion().equals(version)
+                    || ticketDetail.getVersion() > version
+            ) {
+                return ticketDetail;
+            }
         }
 
         // If not in local cache, try to get from Redis cache
-        ticketDetail = getFromCache(id);
+        ticketDetail = getFromRedisCache(id);
 
-        if (ticketDetail != null) {
+        if (ticketDetail != null && ticketDetail.getVersion() >= version) {
             log.info("Ticket detail found in Redis cache for id: {}", id);
             // Update local cache with data from Redis
             ticketDetailLocalCache.put(id, ticketDetail);
@@ -79,7 +86,7 @@ public class TicketDetailCacheService {
         }
 
         // If not in Redis cache, fetch from database
-        ticketDetail = getWithLock(id);
+        ticketDetail = getWithLock(id, version);
 
         if (ticketDetail != null) {
             //log.info("Ticket detail fetched from database for id: {}", id);
@@ -90,7 +97,7 @@ public class TicketDetailCacheService {
         return ticketDetail;
     }
 
-    public TicketDetailEntity getTicketDetailLocalCache(Long id) {
+    public TicketDetailCache getTicketDetailLocalCache(Long id) {
         try {
             return ticketDetailLocalCache.getIfPresent(id);
 
@@ -99,40 +106,33 @@ public class TicketDetailCacheService {
         }
     }
 
-
-    public TicketDetailEntity getTicketDetailRedisCache(Long id) {
-        //log.info("Fetching ticket detail for id: {}", id);
-
-        TicketDetailEntity ticketDetail = getFromCache(id);
-        if (ticketDetail != null) {
-            return ticketDetail;
-        }
-
-        return getWithLock(id);
-    }
-
-    private TicketDetailEntity getFromCache(Long id) {
-        TicketDetailEntity ticketDetail = redisInfraService.getObject(getCacheKey(id), TicketDetailEntity.class);
+    private TicketDetailCache getFromRedisCache(Long id) {
+        TicketDetailCache ticketDetail = redisInfraService.getObject(getCacheKey(id), TicketDetailCache.class);
         if (ticketDetail != null) {
             //log.info("Cache hit for id: {}", id);
         }
         return ticketDetail;
     }
 
-    private TicketDetailEntity getAndCacheTicketDetail(Long id) {
-        TicketDetailEntity ticketDetail = getFromCache(id);
-        if (ticketDetail != null) {
+    private TicketDetailCache getAndCacheTicketDetail(Long id, Long version) {
+        TicketDetailCache ticketDetail = getFromRedisCache(id);
+        if (ticketDetail != null && ticketDetail.getVersion() >= version) {
             return ticketDetail;
         }
 
-        ticketDetail = ticketDetailDomainService.getTicketDetailById(id);
+        //get from database
+        TicketDetailEntity ticketDetailEntity = ticketDetailDomainService.getTicketDetailById(id);
+
+        ticketDetail = new TicketDetailCache();
+        ticketDetail.setTicketDetail(ticketDetailEntity);
+        ticketDetail.setVersion(System.currentTimeMillis());
         log.info("Fetched from database for id: {}", id);
 
         cacheTicketDetail(id, ticketDetail);
         return ticketDetail;
     }
 
-    private void cacheTicketDetail(Long id, TicketDetailEntity ticketDetail) {
+    private void cacheTicketDetail(Long id, TicketDetailCache ticketDetail) {
         redisInfraService.setObject(getCacheKey(id), ticketDetail);
         //log.info("Cached ticket detail for id: {}", id);
     }

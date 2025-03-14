@@ -1,7 +1,7 @@
 package com.taild.expresstix.application.service.ticket;
 
-import com.taild.expresstix.domain.model.entity.TicketDetailEntity;
+import com.taild.expresstix.domain.model.dto.TicketDetailDTO;
 
 public interface TicketDetailAppService {
-    TicketDetailEntity getTicketDetailById(Long ticketId);
+    TicketDetailDTO getTicketDetailById(Long ticketId, Long version);
 }
