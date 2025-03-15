@@ -82,4 +82,9 @@ public class RedisInfraServiceImpl implements RedisInfraService {
         // if result is neither a Map nor a String, return null
         return null;
     }
+
+    @Override
+    public boolean delete(String key) {
+        return redisTemplate.delete(key);
+    }
 }

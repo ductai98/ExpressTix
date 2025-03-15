@@ -1,9 +1,7 @@
 package com.taild.expresstix.domain.model.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.taild.expresstix.domain.listener.TicketDetailListener;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,6 +15,7 @@ import java.util.Date;
 @AllArgsConstructor
 @Entity
 @Table(name = "ticket_item")
+@EntityListeners(TicketDetailListener.class)
 public class TicketDetailEntity {
 
     @Id
