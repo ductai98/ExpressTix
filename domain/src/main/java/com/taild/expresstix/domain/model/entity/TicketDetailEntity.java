@@ -1,6 +1,5 @@
 package com.taild.expresstix.domain.model.entity;
 
-import com.taild.expresstix.domain.listener.TicketDetailListener;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,7 +14,6 @@ import java.util.Date;
 @AllArgsConstructor
 @Entity
 @Table(name = "ticket_item")
-@EntityListeners(TicketDetailListener.class)
 public class TicketDetailEntity {
 
     @Id
@@ -28,10 +26,10 @@ public class TicketDetailEntity {
     private String description;
 
     @Column(name = "stock_initial")
-    private int stockInitial;
+    private Long stockInitial;
 
     @Column(name = "stock_available")
-    private int stockAvailable;
+    private Long stockAvailable;
 
     @Column(name = "is_stock_prepared")
     private boolean isStockPrepared;

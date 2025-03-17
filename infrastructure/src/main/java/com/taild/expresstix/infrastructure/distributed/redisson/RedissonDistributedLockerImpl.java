@@ -25,7 +25,7 @@ public class RedissonDistributedLockerImpl implements RedissonDistributedService
             @Override
             public boolean tryLock(long waitTime, long leaseTime, TimeUnit timeUnit) throws InterruptedException {
                 boolean isLockSuccess = rLock.tryLock(waitTime, leaseTime, timeUnit);
-                log.info("tryLock result: {}", isLockSuccess);
+                //log.info("tryLock result: {}", isLockSuccess);
                 return isLockSuccess;
             }
 

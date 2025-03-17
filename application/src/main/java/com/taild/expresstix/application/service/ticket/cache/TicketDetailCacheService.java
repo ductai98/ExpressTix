@@ -9,19 +9,17 @@ import com.taild.expresstix.infrastructure.cache.redis.RedisInfraService;
 import com.taild.expresstix.infrastructure.distributed.redisson.RedissonDistributedLocker;
 import com.taild.expresstix.infrastructure.distributed.redisson.RedissonDistributedService;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
 
+import static com.taild.expresstix.application.constant.redis.CacheConstant.*;
+
 @Service
 @Slf4j
 public class TicketDetailCacheService {
-
-    private static final String LOCK_KEY_PREFIX = "PRO_LOCK_KEY_ITEM_";
-    private static final String CACHE_KEY_PREFIX = "PRO_TICKET:ITEM:";
-    private static final int LOCK_WAIT_TIME = 1;
-    private static final int LOCK_LEASE_TIME = 5;
 
     //local cache
     private static final Cache<Long, TicketDetailCache> ticketDetailLocalCache = CacheBuilder.newBuilder()
@@ -39,8 +37,10 @@ public class TicketDetailCacheService {
 
     @Autowired
     private TicketDetailDomainService ticketDetailDomainService;
+    @Autowired
+    private ModelMapper modelMapper;
 
-    private TicketDetailCache getWithLock(Long id, Long version) {
+    public TicketDetailCache getWithLock(Long id, Long version) {
         RedissonDistributedLocker locker = redissonDistributedService.getDistributedLock(getLockKey(id));
         try {
             if (!locker.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
@@ -58,8 +58,25 @@ public class TicketDetailCacheService {
         }
     }
 
+    public void putWithLock(Long id, TicketDetailCache ticketDetail) {
+        RedissonDistributedLocker locker = redissonDistributedService.getDistributedLock(getLockKey(id));
+        try {
+            if (!locker.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
+                log.info("Failed to acquire lock for id: {}", id);
+                return;
+            }
 
-    public TicketDetailCache getTickerDetailCache(Long id, Long version) {
+            redisInfraService.setObject(CACHE_KEY_PREFIX + id, ticketDetail);
+        } catch (InterruptedException e) {
+            log.error("Interrupted while trying to acquire lock for id: {}", id, e);
+            Thread.currentThread().interrupt();
+        } finally {
+            locker.unlock();
+        }
+    }
+
+
+    public TicketDetailCache getTicketDetailCache(Long id, Long version) {
 
         // First, try to get from local cache
         TicketDetailCache ticketDetail = getTicketDetailLocalCache(id);
@@ -108,7 +125,7 @@ public class TicketDetailCacheService {
 
     private TicketDetailCache getFromRedisCache(Long id) {
         TicketDetailCache ticketDetail = redisInfraService.getObject(getCacheKey(id), TicketDetailCache.class);
-        if (ticketDetail != null) {
+        if (ticketDetail == null) {
             //log.info("Cache hit for id: {}", id);
         }
         return ticketDetail;
@@ -123,8 +140,8 @@ public class TicketDetailCacheService {
         //get from database
         TicketDetailEntity ticketDetailEntity = ticketDetailDomainService.getTicketDetailById(id);
 
-        ticketDetail = new TicketDetailCache();
-        ticketDetail.setTicketDetail(ticketDetailEntity);
+        ticketDetail = modelMapper.map(ticketDetailEntity, TicketDetailCache.class);
+
         ticketDetail.setVersion(System.currentTimeMillis());
         log.info("Fetched from database for id: {}", id);
 

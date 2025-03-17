@@ -87,4 +87,9 @@ public class RedisInfraServiceImpl implements RedisInfraService {
     public boolean delete(String key) {
         return redisTemplate.delete(key);
     }
+
+    @Override
+    public RedisTemplate<String, Object> getRedisTemplate() {
+        return redisTemplate;
+    }
 }
