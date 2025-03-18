@@ -48,23 +48,30 @@ spring:
 resilience4j:
   ratelimiter:
     instances:
-      backendA:
-        limitForPeriod: 2
-        limitRefreshPeriod: 10s
+      ticket:
+        limitForPeriod: 100000
+        limitRefreshPeriod: 1s
         timeoutDuration: 0
         registerHealthIndicator: true
         eventConsumerBufferSize: 100
-      backendB:
-        limitForPeriod: 5
-        limitRefreshPeriod: 500ms
-        timeoutDuration: 3s
+      ticketdetail:
+        limitForPeriod: 30000
+        limitRefreshPeriod: 1s
+        timeoutDuration: 0
+        registerHealthIndicator: true
+        eventConsumerBufferSize: 100
+      ticketorder:
+        limitForPeriod: 15000
+        limitRefreshPeriod: 1s
+        timeoutDuration: 0
+        registerHealthIndicator: true
+        eventConsumerBufferSize: 100
   circuitbreaker:
     instances:
-      checkRandom:
+      ticket:
         registerHealthIndicator: true
         slidingWindowSize: 10
         permittedNumberOfCallsInHalfOpenState: 3
-        #slidingWindowType: TIME_BASED
         minimumNumberOfCalls: 5
         waitDurationInOpenState: 5s
         failureRateThreshold: 50

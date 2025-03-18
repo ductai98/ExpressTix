@@ -29,27 +29,40 @@ public class TicketController {
 
 
     @GetMapping("/hello")
-    @RateLimiter(name = "backendA", fallbackMethod = "fallbackHello")
-    public String hello() {
-        return eventAppService.sayHi("taild");
+    @RateLimiter(name = "ticket", fallbackMethod = "fallbackHello")
+    public ResponseEntity<String> hello() {
+        ResponseEntity response = new ResponseEntity<>(eventAppService.sayHi("taild"), HttpStatus.OK);
+        return response;
     }
 
-    public String fallbackHello(Throwable throwable) {
-        return "Too many requests";
+    public ResponseEntity<String> fallbackHello(Throwable throwable) {
+        log.info("Too many requests, fallback method called. Error: {}", throwable.getMessage());
+        ResponseEntity<String> responseEntity = new ResponseEntity<>("Too many requests", HttpStatus.TOO_MANY_REQUESTS);
+        return responseEntity;
     }
 
 
     @GetMapping("/ticket/{id}")
-    public TicketDetailDTO getTickerDetail(
+    @RateLimiter(name = "ticketdetail", fallbackMethod = "fallbackGetTicketDetail")
+    public ResponseEntity<TicketDetailDTO> getTicketDetail(
             @PathVariable(name = "id") Long ticketId,
             @RequestParam(name = "version", required = false, defaultValue = "0") Long version
     ) {
-        return ticketDetailAppService.getTicketDetailById(ticketId, version);
+        TicketDetailDTO ticketDetail = ticketDetailAppService.getTicketDetailById(ticketId, version);
+        ResponseEntity<TicketDetailDTO> response = new ResponseEntity<>(ticketDetail, HttpStatus.OK);
+        return response;
+    }
+
+    public ResponseEntity<TicketDetailDTO> fallbackGetTicketDetail(Throwable throwable) {
+        log.info("Too many requests, fallback method called. Error: {}", throwable.getMessage());
+        ResponseEntity<TicketDetailDTO> responseEntity = new ResponseEntity<>(null, HttpStatus.TOO_MANY_REQUESTS);
+        return responseEntity;
     }
 
 
     @GetMapping("/order/{id}")
-    public ResponseEntity<?> orderTickets(@RequestParam(name = "quantity") int quantity,
+    @RateLimiter(name = "ticketorder", fallbackMethod = "fallbackOrderTicket")
+    public ResponseEntity<String> orderTickets(@RequestParam(name = "quantity") int quantity,
                                           @PathVariable(name = "id") Long ticketId
     ) {
 
@@ -70,6 +83,12 @@ public class TicketController {
             responseEntity = new ResponseEntity<>("Insufficient stock", HttpStatus.BAD_REQUEST);
         }
 
+        return responseEntity;
+    }
+
+    public ResponseEntity<String> fallbackOrderTicket(Throwable throwable) {
+        log.info("Too many requests, fallback method called. Error: {}", throwable.getMessage());
+        ResponseEntity<String> responseEntity = new ResponseEntity<>("Too many requests", HttpStatus.TOO_MANY_REQUESTS);
         return responseEntity;
     }
 }

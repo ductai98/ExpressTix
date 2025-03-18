@@ -47,23 +47,6 @@ public class TicketDetailAppServiceImpl implements TicketDetailAppService {
     @Override
     public boolean decreaseTicketStock(Long ticketId, int quantity) {
 
-        /*TicketDetailCache ticketDetailCache = ticketDetailCacheService.getWithLock(ticketId, 0L);
-
-        if (ticketDetailCache == null) {
-            return false;
-        }
-
-        Long stockAvailableCache = ticketDetailCache.getStockAvailable();
-
-        if (stockAvailableCache == null || stockAvailableCache < quantity) {
-            log.info("Insufficient stock for ticket: stock {}, quantity: {}", stockAvailableCache, quantity);
-            return false;
-        }
-
-        ticketDetailCache.setStockAvailable(stockAvailableCache - quantity);
-
-        ticketDetailCacheService.putWithLock(ticketId, ticketDetailCache);*/
-
         int stockAvailable = decreaseStockCacheByLUA(ticketId, quantity);
 
         return ticketDetailRepository.decreaseTicketStock(ticketId, quantity) > 0;
