@@ -20,7 +20,7 @@
 
 
     <name>express</name>
-	<description>Quick and hassle-free train ticketing</description>
+	<description>A simple backend for a flight ticket booking system</description>
 
     <modules>
         <module>application</module>
