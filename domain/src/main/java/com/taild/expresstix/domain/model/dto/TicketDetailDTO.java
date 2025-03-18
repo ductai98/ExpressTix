@@ -1,5 +1,7 @@
 package com.taild.expresstix.domain.model.dto;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Id;
 import lombok.Data;
 
 import java.util.Date;
@@ -14,23 +16,27 @@ public class TicketDetailDTO {
 
     private String description;
 
-    private int stockInitial;
+    private Long stockInitial;
 
-    private int stockAvailable;
+    private Long stockAvailable;
 
     private boolean isStockPrepared;
 
-    private Long priceOriginal;
+    private Long price;
 
-    private Long priceFlash;
+    private Date startTime;
 
-    private Date saleStartTime;
+    private Date endTime;
 
-    private Date saleEndTime;
+    private String startStation;
+
+    private String endStation;
 
     private int status;
 
-    private Long activityId;
+    private Date updatedAt;
+
+    private Date createdAt;
 
     private Long version;
 }

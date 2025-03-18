@@ -23,17 +23,17 @@ public class TicketDetailCache {
 
     private boolean isStockPrepared;
 
-    private Long priceOriginal;
+    private Long price;
 
-    private Long priceFlash;
+    private Date startTime;
 
-    private Date saleStartTime;
+    private Date endTime;
 
-    private Date saleEndTime;
+    private String startStation;
+
+    private String endStation;
 
     private int status;
-
-    private Long activityId;
 
     private Date updatedAt;
 

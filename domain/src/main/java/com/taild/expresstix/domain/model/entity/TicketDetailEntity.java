@@ -34,23 +34,23 @@ public class TicketDetailEntity {
     @Column(name = "is_stock_prepared")
     private boolean isStockPrepared;
 
-    @Column(name = "price_original")
-    private Long priceOriginal;
+    @Column(name = "price")
+    private Long price;
 
-    @Column(name = "price_flash")
-    private Long priceFlash;
+    @Column(name = "start_time")
+    private Date startTime;
 
-    @Column(name = "sale_start_time")
-    private Date saleStartTime;
+    @Column(name = "end_time")
+    private Date endTime;
 
-    @Column(name = "sale_end_time")
-    private Date saleEndTime;
+    @Column(name = "start_station")
+    private String startStation;
+
+    @Column(name = "end_station")
+    private String endStation;
 
     @Column(name = "status")
     private int status;
-
-    @Column(name = "activity_id")
-    private Long activityId;
 
     @Column(name = "updated_at")
     private Date updatedAt;
